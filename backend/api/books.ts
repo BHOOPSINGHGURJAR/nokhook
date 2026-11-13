@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { applyCors } from '../lib/cors';
 import { requireAdminUser } from '../lib/firebaseAdmin';
-import { getSql } from '../lib/neon';
+import { ensureNeonSchema, getSql } from '../lib/neon';
 
 const vibeSliceSchema = z.object({
   name: z.string().min(1).max(40),
@@ -51,6 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req, res)) return;
 
   try {
+    await ensureNeonSchema();
     const sql = getSql();
 
     if (req.method === 'GET') {

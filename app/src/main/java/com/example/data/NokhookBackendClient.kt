@@ -139,10 +139,10 @@ class NokhookBackendClient(
         val token = currentIdToken() ?: error("Admin authentication required")
         val json = request("GET", "/api/admin/overview", authToken = token, body = null)
         val obj = JSONObject(json)
-        val metrics = obj.optJSONObject("metrics") ?: obj
+        val metrics = obj.optJSONObject("stats") ?: obj.optJSONObject("metrics") ?: obj
         AdminOverviewRemoteStats(
             totalBooks = metrics.optInt("totalBooks", 0),
-            totalVotes = metrics.optInt("totalVotes", 0),
+            totalVotes = metrics.optInt("totalRatings", metrics.optInt("totalVotes", 0)),
             totalReviews = metrics.optInt("totalReviews", 0),
             pendingContributions = metrics.optInt("pendingContributions", 0),
             featuredBooks = metrics.optInt("featuredBooks", 0)

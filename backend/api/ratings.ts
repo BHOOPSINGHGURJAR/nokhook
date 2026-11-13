@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { applyCors } from '../lib/cors';
 import { requireAuthenticatedUser } from '../lib/firebaseAdmin';
-import { getSql } from '../lib/neon';
+import { ensureNeonSchema, getSql } from '../lib/neon';
 
 const voteSchema = z.object({
   bookId: z.string().min(1).max(120),
@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    await ensureNeonSchema();
     const sql = getSql();
     const { bookId, ratingTier, status } = parsed.data;
 

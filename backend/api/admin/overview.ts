@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { applyCors } from '../../lib/cors';
 import { requireAdminUser } from '../../lib/firebaseAdmin';
-import { getSql } from '../../lib/neon';
+import { ensureNeonSchema, getSql } from '../../lib/neon';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req, res)) return;
@@ -14,6 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!admin) return;
 
   try {
+    await ensureNeonSchema();
     const sql = getSql();
     const [counts] = await sql`
       SELECT
