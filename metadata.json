@@ -1,0 +1,8 @@
+{
+  "name": "Remix nokhook",
+  "description": "Book recommendation and social reading app with Vibe Charts, 4-tier rating meters, curated leaderboards, community discussions, and personal reading collections.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

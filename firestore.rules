@@ -1,0 +1,270 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- Entity Validators ---
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 30 &&
+             data.firstName is string && data.firstName.size() >= 1 && data.firstName.size() <= 50 &&
+             data.lastName is string && data.lastName.size() <= 50 &&
+             (!('countryCode' in data) || (data.countryCode is string && data.countryCode.size() <= 10)) &&
+             (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 20)) &&
+             (!('phoneVerified' in data) || data.phoneVerified is bool) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             (!('followersCount' in data) || (data.followersCount is int && data.followersCount >= 0)) &&
+             (!('followingCount' in data) || (data.followingCount is int && data.followingCount >= 0)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidUserBookState(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 128 &&
+             data.status in ['none', 'read', 'tbr', 'interested'] &&
+             (!('ratingTier' in data) || data.ratingTier in ['', 'must_read', 'worth_reading', 'light_read', 'skip']) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidFollowingEdge(data) {
+      return data.targetUserId is string && data.targetUserId.size() >= 1 && data.targetUserId.size() <= 128 &&
+             data.targetUsername is string && data.targetUsername.size() >= 1 && data.targetUsername.size() <= 40 &&
+             data.targetDisplayName is string && data.targetDisplayName.size() >= 1 && data.targetDisplayName.size() <= 80 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidBookCollection(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 80 &&
+             data.creatorUsername is string && data.creatorUsername.size() >= 1 && data.creatorUsername.size() <= 40 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 400)) &&
+             data.isPublic is bool &&
+             data.bookIds is list && data.bookIds.size() <= 50 &&
+             (data.bookIds.size() == 0 || data.bookIds[0] is string) &&
+             (!('topicTag' in data) || (data.topicTag is string && data.topicTag.size() <= 40)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidBookReview(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 128 &&
+             data.bookTitle is string && data.bookTitle.size() >= 1 && data.bookTitle.size() <= 150 &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+             data.authorUsername is string && data.authorUsername.size() >= 1 && data.authorUsername.size() <= 40 &&
+             data.ratingTier in ['must_read', 'worth_reading', 'light_read', 'skip'] &&
+             (!('topicTag' in data) || (data.topicTag is string && data.topicTag.size() <= 40)) &&
+             data.body is string && data.body.size() >= 3 && data.body.size() <= 2000 &&
+             data.isPublic is bool && data.isPublic == true &&
+             (!('likesCount' in data) || (data.likesCount is int && data.likesCount >= 0)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidDiscussionPost(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+             data.authorUsername is string && data.authorUsername.size() >= 1 && data.authorUsername.size() <= 40 &&
+             data.topicTag is string && data.topicTag.size() >= 1 && data.topicTag.size() <= 40 &&
+             (!('bookId' in data) || (data.bookId is string && data.bookId.size() <= 128)) &&
+             data.title is string && data.title.size() >= 3 && data.title.size() <= 180 &&
+             data.body is string && data.body.size() >= 3 && data.body.size() <= 3000 &&
+             data.isPublic is bool && data.isPublic == true &&
+             data.upvotes is int && data.upvotes >= 0 &&
+             data.repliesCount is int && data.repliesCount >= 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidDiscussionReply(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+             data.authorUsername is string && data.authorUsername.size() >= 1 && data.authorUsername.size() <= 40 &&
+             data.parentReplyId is string && data.parentReplyId.size() <= 128 &&
+             data.body is string && data.body.size() >= 1 && data.body.size() <= 1500 &&
+             data.isPublic is bool && data.isPublic == true &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidBookContribution(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.bookTitle is string && data.bookTitle.size() >= 1 && data.bookTitle.size() <= 150 &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 100 &&
+             (!('publisher' in data) || (data.publisher is string && data.publisher.size() <= 100)) &&
+             data.language is string && data.language.size() >= 1 && data.language.size() <= 40 &&
+             data.genre is string && data.genre.size() >= 1 && data.genre.size() <= 50 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             data.status in ['pending', 'approved', 'rejected'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- /users/{userId} (PII Isolated, Owner-Only) ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().keys().hasAll(['userId', 'username', 'firstName', 'lastName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'username', 'firstName', 'lastName', 'countryCode', 'phoneNumber', 'phoneVerified', 'bio', 'followersCount', 'followingCount', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['username', 'firstName', 'lastName', 'countryCode', 'phoneNumber', 'phoneVerified', 'bio', 'followersCount', 'followingCount', 'updatedAt']);
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // --- /users/{userId}/bookStates/{bookId} ---
+      match /bookStates/{bookId} {
+        allow get: if isValidId(userId) && isValidId(bookId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(bookId) && isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'bookId', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'bookId', 'status', 'ratingTier', 'createdAt', 'updatedAt']) &&
+                         incoming().bookId == bookId &&
+                         isValidUserBookState(incoming());
+        allow update: if isValidId(userId) && isValidId(bookId) && isOwner(userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().bookId == existing().bookId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidUserBookState(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'ratingTier', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(bookId) && isOwner(userId);
+      }
+
+      // --- /users/{userId}/following/{targetUserId} ---
+      match /following/{targetUserId} {
+        allow get: if isValidId(userId) && isValidId(targetUserId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(targetUserId) && isOwner(userId) &&
+                         incoming().keys().hasAll(['targetUserId', 'targetUsername', 'targetDisplayName', 'createdAt']) &&
+                         incoming().keys().hasOnly(['targetUserId', 'targetUsername', 'targetDisplayName', 'createdAt']) &&
+                         incoming().targetUserId == targetUserId &&
+                         isValidFollowingEdge(incoming());
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(targetUserId) && isOwner(userId);
+      }
+    }
+
+    // --- /collections/{collectionId} ---
+    match /collections/{collectionId} {
+      allow get: if isValidId(collectionId) && isSignedIn() && (existing().userId == request.auth.uid || existing().isPublic == true);
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || existing().isPublic == true);
+      allow create: if isValidId(collectionId) && isSignedIn() &&
+                       incoming().keys().hasAll(['userId', 'creatorName', 'creatorUsername', 'title', 'isPublic', 'bookIds', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'creatorName', 'creatorUsername', 'title', 'description', 'isPublic', 'bookIds', 'topicTag', 'createdAt', 'updatedAt']) &&
+                       isValidBookCollection(incoming());
+      allow update: if isValidId(collectionId) && isSignedIn() &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidBookCollection(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'isPublic', 'bookIds', 'topicTag', 'updatedAt']);
+      allow delete: if isValidId(collectionId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- /reviews/{reviewId} ---
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && isSignedIn() && existing().isPublic == true;
+      allow list: if isSignedIn() && (existing().isPublic == true || existing().userId == request.auth.uid);
+      allow create: if isValidId(reviewId) && isSignedIn() &&
+                       incoming().keys().hasAll(['userId', 'bookId', 'bookTitle', 'authorName', 'authorUsername', 'ratingTier', 'body', 'isPublic', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'bookId', 'bookTitle', 'authorName', 'authorUsername', 'ratingTier', 'topicTag', 'body', 'isPublic', 'likesCount', 'createdAt', 'updatedAt']) &&
+                       isValidBookReview(incoming());
+      allow update: if isValidId(reviewId) && isSignedIn() &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().bookId == existing().bookId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidBookReview(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ratingTier', 'topicTag', 'body', 'updatedAt']);
+      allow delete: if isValidId(reviewId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- /discussions/{discussionId} ---
+    match /discussions/{discussionId} {
+      allow get: if isValidId(discussionId) && isSignedIn() && existing().isPublic == true;
+      allow list: if isSignedIn() && existing().isPublic == true;
+      allow create: if isValidId(discussionId) && isSignedIn() &&
+                       incoming().keys().hasAll(['userId', 'authorName', 'authorUsername', 'topicTag', 'title', 'body', 'isPublic', 'upvotes', 'repliesCount', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'authorName', 'authorUsername', 'topicTag', 'bookId', 'title', 'body', 'isPublic', 'upvotes', 'repliesCount', 'createdAt', 'updatedAt']) &&
+                       incoming().upvotes == 0 &&
+                       incoming().repliesCount == 0 &&
+                       isValidDiscussionPost(incoming());
+      allow update: if isValidId(discussionId) && isSignedIn() &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidDiscussionPost(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'body', 'topicTag', 'updatedAt']);
+      allow delete: if isValidId(discussionId) && isSignedIn() && existing().userId == request.auth.uid;
+
+      // --- /discussions/{discussionId}/replies/{replyId} ---
+      match /replies/{replyId} {
+        allow get: if isValidId(discussionId) && isValidId(replyId) && isSignedIn() && existing().isPublic == true;
+        allow list: if isValidId(discussionId) && isSignedIn() && existing().isPublic == true;
+        allow create: if isValidId(discussionId) && isValidId(replyId) && isSignedIn() &&
+                         incoming().keys().hasAll(['userId', 'authorName', 'authorUsername', 'parentReplyId', 'body', 'isPublic', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'authorName', 'authorUsername', 'parentReplyId', 'body', 'isPublic', 'createdAt']) &&
+                         isValidDiscussionReply(incoming()) &&
+                         exists(/databases/$(database)/documents/discussions/$(discussionId));
+        allow update: if false;
+        allow delete: if isValidId(discussionId) && isValidId(replyId) && isSignedIn() && existing().userId == request.auth.uid;
+      }
+    }
+
+    // --- /contributions/{contributionId} ---
+    match /contributions/{contributionId} {
+      allow get: if isValidId(contributionId) && isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isValidId(contributionId) && isSignedIn() &&
+                       incoming().keys().hasAll(['userId', 'bookTitle', 'authorName', 'language', 'genre', 'status', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'bookTitle', 'authorName', 'publisher', 'language', 'genre', 'notes', 'status', 'createdAt', 'updatedAt']) &&
+                       incoming().status == 'pending' &&
+                       isValidBookContribution(incoming());
+      allow update: if isValidId(contributionId) && isSignedIn() &&
+                       existing().userId == request.auth.uid &&
+                       existing().status == 'pending' &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().status == 'pending' &&
+                       isValidBookContribution(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['bookTitle', 'authorName', 'publisher', 'language', 'genre', 'notes', 'updatedAt']);
+      allow delete: if isValidId(contributionId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

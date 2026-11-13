@@ -1,0 +1,412 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private reader profile and account details for an authenticated nokhook user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user."
+        },
+        "username": {
+          "type": "string",
+          "description": "Unique reader handle without @ prefix."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Reader first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Reader last name."
+        },
+        "countryCode": {
+          "type": "string",
+          "description": "Mobile dialing country code (e.g., +91)."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Reader mobile number."
+        },
+        "phoneVerified": {
+          "type": "boolean",
+          "description": "Whether the 6-digit OTP verification was completed."
+        },
+        "bio": {
+          "type": "string",
+          "description": "Reader bio shown on profile."
+        },
+        "followersCount": {
+          "type": "integer",
+          "description": "Number of followers."
+        },
+        "followingCount": {
+          "type": "integer",
+          "description": "Number of accounts followed."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "username", "firstName", "lastName", "createdAt", "updatedAt"]
+    },
+    "UserBookState": {
+      "title": "UserBookState",
+      "description": "Per-book reading shelf status and 4-tier rating vote for a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "bookId": {
+          "type": "string",
+          "description": "Target book identifier."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["none", "read", "tbr", "interested"],
+          "description": "Reading status on the user's shelf."
+        },
+        "ratingTier": {
+          "type": "string",
+          "enum": ["", "must_read", "worth_reading", "light_read", "skip"],
+          "description": "Selected 4-tier rating meter vote."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["userId", "bookId", "status", "createdAt", "updatedAt"]
+    },
+    "FollowingEdge": {
+      "title": "FollowingEdge",
+      "description": "Represents a reader followed by the authenticated user.",
+      "type": "object",
+      "properties": {
+        "targetUserId": {
+          "type": "string",
+          "description": "ID of the followed reader."
+        },
+        "targetUsername": {
+          "type": "string",
+          "description": "Handle of the followed reader."
+        },
+        "targetDisplayName": {
+          "type": "string",
+          "description": "Display name of the followed reader."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["targetUserId", "targetUsername", "targetDisplayName", "createdAt"]
+    },
+    "BookCollection": {
+      "title": "BookCollection",
+      "description": "Curated reading list or collection created by a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase Auth UID."
+        },
+        "creatorName": {
+          "type": "string",
+          "description": "Creator display name."
+        },
+        "creatorUsername": {
+          "type": "string",
+          "description": "Creator handle."
+        },
+        "title": {
+          "type": "string",
+          "description": "Collection title."
+        },
+        "description": {
+          "type": "string",
+          "description": "Collection description."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether visible to other signed-in readers."
+        },
+        "bookIds": {
+          "type": "array",
+          "description": "Bounded list of up to 50 book IDs in this collection."
+        },
+        "topicTag": {
+          "type": "string",
+          "description": "Primary topic/genre tag."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["userId", "creatorName", "creatorUsername", "title", "isPublic", "bookIds", "createdAt", "updatedAt"]
+    },
+    "BookReview": {
+      "title": "BookReview",
+      "description": "Community book review authored by an authenticated reader.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Reviewer Firebase Auth UID."
+        },
+        "bookId": {
+          "type": "string",
+          "description": "Book identifier."
+        },
+        "bookTitle": {
+          "type": "string",
+          "description": "Book title snapshot."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Reviewer display name."
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "Reviewer handle."
+        },
+        "ratingTier": {
+          "type": "string",
+          "enum": ["must_read", "worth_reading", "light_read", "skip"],
+          "description": "4-tier rating tag."
+        },
+        "topicTag": {
+          "type": "string",
+          "description": "Book genre/topic tag."
+        },
+        "body": {
+          "type": "string",
+          "description": "Review text."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Always true for published community reviews."
+        },
+        "likesCount": {
+          "type": "integer",
+          "description": "Helpful votes count."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["userId", "bookId", "bookTitle", "authorName", "authorUsername", "ratingTier", "body", "isPublic", "createdAt", "updatedAt"]
+    },
+    "DiscussionPost": {
+      "title": "DiscussionPost",
+      "description": "Community book debate or question post.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Author Firebase Auth UID."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Author display name."
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "Author handle."
+        },
+        "topicTag": {
+          "type": "string",
+          "description": "Topic category for filtering."
+        },
+        "bookId": {
+          "type": "string",
+          "description": "Optional related book ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Discussion prompt or headline."
+        },
+        "body": {
+          "type": "string",
+          "description": "Discussion body text."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether visible in community discussions."
+        },
+        "upvotes": {
+          "type": "integer",
+          "description": "Upvote count for Top sorting."
+        },
+        "repliesCount": {
+          "type": "integer",
+          "description": "Reply counter."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["userId", "authorName", "authorUsername", "topicTag", "title", "body", "isPublic", "upvotes", "repliesCount", "createdAt", "updatedAt"]
+    },
+    "DiscussionReply": {
+      "title": "DiscussionReply",
+      "description": "Reply or nested reply inside a community discussion.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Author Firebase Auth UID."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Author display name."
+        },
+        "authorUsername": {
+          "type": "string",
+          "description": "Author handle."
+        },
+        "parentReplyId": {
+          "type": "string",
+          "description": "Empty string for top-level reply, or parent reply ID for nested replies."
+        },
+        "body": {
+          "type": "string",
+          "description": "Reply text."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Visibility flag."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["userId", "authorName", "authorUsername", "parentReplyId", "body", "isPublic", "createdAt"]
+    },
+    "BookContribution": {
+      "title": "BookContribution",
+      "description": "Crowdsourced book or author submission awaiting editorial review.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Submitter Firebase Auth UID."
+        },
+        "bookTitle": {
+          "type": "string",
+          "description": "Proposed book title."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Proposed author name."
+        },
+        "publisher": {
+          "type": "string",
+          "description": "Publisher name."
+        },
+        "language": {
+          "type": "string",
+          "description": "Book language."
+        },
+        "genre": {
+          "type": "string",
+          "description": "Primary genre."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional context or ISBN."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "Moderation status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["userId", "bookTitle", "authorName", "language", "genre", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and account verification status."
+    },
+    "/users/{userId}/bookStates/{bookId}": {
+      "schema": { "$ref": "#/entities/UserBookState" },
+      "description": "User shelf status (read/tbr/interested) and 4-tier rating vote per book."
+    },
+    "/users/{userId}/following/{targetUserId}": {
+      "schema": { "$ref": "#/entities/FollowingEdge" },
+      "description": "Readers followed by the user."
+    },
+    "/collections/{collectionId}": {
+      "schema": { "$ref": "#/entities/BookCollection" },
+      "description": "User reading collections (private or public)."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/BookReview" },
+      "description": "Community book reviews."
+    },
+    "/discussions/{discussionId}": {
+      "schema": { "$ref": "#/entities/DiscussionPost" },
+      "description": "Community book discussions."
+    },
+    "/discussions/{discussionId}/replies/{replyId}": {
+      "schema": { "$ref": "#/entities/DiscussionReply" },
+      "description": "Nested replies under a discussion post."
+    },
+    "/contributions/{contributionId}": {
+      "schema": { "$ref": "#/entities/BookContribution" },
+      "description": "Crowdsourced missing book/author submissions."
+    }
+  }
+}
